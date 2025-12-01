@@ -1,0 +1,17 @@
+[1.792s] Invoking command in '/home/rasmus/exercises_ws/src/build/path_planner_example': PYTHONPATH=/home/rasmus/exercises_ws/src/build/path_planner_example/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/rasmus/exercises_ws/src/install/path_planner_example/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/rasmus/exercises_ws/src/build/path_planner_example/build --no-deps symlink_data
+[2.369s] running develop
+[2.713s] running egg_info
+[2.713s] writing path_planner_example.egg-info/PKG-INFO
+[2.714s] writing dependency_links to path_planner_example.egg-info/dependency_links.txt
+[2.715s] writing entry points to path_planner_example.egg-info/entry_points.txt
+[2.715s] writing requirements to path_planner_example.egg-info/requires.txt
+[2.715s] writing top-level names to path_planner_example.egg-info/top_level.txt
+[2.719s] reading manifest file 'path_planner_example.egg-info/SOURCES.txt'
+[2.721s] writing manifest file 'path_planner_example.egg-info/SOURCES.txt'
+[2.723s] running build_ext
+[2.724s] Creating /home/rasmus/exercises_ws/src/install/path_planner_example/lib/python3.10/site-packages/path-planner-example.egg-link (link to .)
+[2.726s] Installing path_planner_node script to /home/rasmus/exercises_ws/src/install/path_planner_example/lib/path_planner_example
+[2.726s] 
+[2.726s] Installed /home/rasmus/exercises_ws/src/build/path_planner_example
+[2.726s] running symlink_data
+[2.796s] Invoked command in '/home/rasmus/exercises_ws/src/build/path_planner_example' returned '0': PYTHONPATH=/home/rasmus/exercises_ws/src/build/path_planner_example/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/rasmus/exercises_ws/src/install/path_planner_example/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/rasmus/exercises_ws/src/build/path_planner_example/build --no-deps symlink_data

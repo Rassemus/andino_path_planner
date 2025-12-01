@@ -1,0 +1,17 @@
+[1.185s] Invoking command in '/home/rasmus/exercises_ws/build/ros2_exercise': PYTHONPATH=/home/rasmus/exercises_ws/build/ros2_exercise/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/rasmus/exercises_ws/install/ros2_exercise/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/rasmus/exercises_ws/build/ros2_exercise/build --no-deps symlink_data
+[1.685s] running develop
+[1.995s] running egg_info
+[1.995s] writing ros2_exercise.egg-info/PKG-INFO
+[1.995s] writing dependency_links to ros2_exercise.egg-info/dependency_links.txt
+[1.996s] writing entry points to ros2_exercise.egg-info/entry_points.txt
+[1.996s] writing requirements to ros2_exercise.egg-info/requires.txt
+[1.997s] writing top-level names to ros2_exercise.egg-info/top_level.txt
+[1.999s] reading manifest file 'ros2_exercise.egg-info/SOURCES.txt'
+[2.000s] writing manifest file 'ros2_exercise.egg-info/SOURCES.txt'
+[2.002s] running build_ext
+[2.002s] Creating /home/rasmus/exercises_ws/install/ros2_exercise/lib/python3.10/site-packages/ros2-exercise.egg-link (link to .)
+[2.005s] Installing odometery_publisher script to /home/rasmus/exercises_ws/install/ros2_exercise/lib/ros2_exercise
+[2.006s] 
+[2.006s] Installed /home/rasmus/exercises_ws/build/ros2_exercise
+[2.006s] running symlink_data
+[2.065s] Invoked command in '/home/rasmus/exercises_ws/build/ros2_exercise' returned '0': PYTHONPATH=/home/rasmus/exercises_ws/build/ros2_exercise/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/rasmus/exercises_ws/install/ros2_exercise/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/rasmus/exercises_ws/build/ros2_exercise/build --no-deps symlink_data
