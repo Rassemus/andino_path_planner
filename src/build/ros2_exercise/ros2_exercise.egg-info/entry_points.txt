@@ -1,3 +1,0 @@
-[console_scripts]
-odometery_publisher = ros2_exercise.odometery_publisher:main
-
