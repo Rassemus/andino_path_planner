@@ -75,7 +75,7 @@ def create_straight_plan(start, goal, time_now):
 def create_astar_plan(start: PoseStamped, goal: PoseStamped, time_now, costmap: Path, node: Node) -> Optional[Path]:
     grid, width, height, resolution, origin = convert_costmap_to_grid(costmap, node)
     if grid is None:
-        node.get_logger().error("Costmap conversion failed.");
+        node.get_logger().error("Costmap conversion failed.")
         return None
 
     start_xy = (start.pose.position.x, start.pose.position.y)

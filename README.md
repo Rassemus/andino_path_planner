@@ -34,18 +34,7 @@ The project is tested with the Andino robot in Gazebo.
 #### 1. Clone this repository
 
 ```
-git@github.com:Rassemus/andino_path_planner.git
-```
-
-#### 2. Build workspace
-```
-cd $HOME/exercises_ws/
-colcon build --symlink-install
-```
-
-#### 3. Source workspace
-```
-source install/setup.bash
+git clone git@github.com:Rassemus/andino_path_planner.git
 ```
 
 # How to run simulation
@@ -54,7 +43,7 @@ If you get the error `ros2: command not found` check that the source is found
 ```
 source /opt/ros/humble/setup.bash
 ```
-
+Run each command in its own terminal.
 #### 1.Start the andino robot simulation + Nav2
 ```
 ros2 launch andino_gz andino_gz.launch.py nav2:=True
@@ -65,3 +54,18 @@ ros2 launch andino_gz andino_gz.launch.py nav2:=True
 ros2 launch andino_gz slam_toolbox_online_async.launch.py
 ```
 
+#### 3. Build and run path_planner
+#### 3.1 Build workspace
+```
+cd $HOME/andino_path_planner/
+colcon build --symlink-install
+```
+##### 3.2 Source workspace
+```
+source install/setup.bash
+```
+
+##### 3.3 Run path planner
+```
+ros2 run path_planner_example path_planner_node --ros-args -p use_sim_time:=True
+```
