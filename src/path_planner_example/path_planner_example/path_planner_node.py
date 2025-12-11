@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
+import time
 import math
 import heapq
 from typing import List, Tuple, Optional
 
 import rclpy
 from rclpy.node import Node
+# from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
-from nav_msgs.msg import Path
+from nav_msgs.msg import Path, OccupancyGrid
 from geometry_msgs.msg import PoseStamped
 from create_plan_msgs.srv import CreatePlan
 from nav2_simple_commander.robot_navigator import BasicNavigator
+from nav2_msgs.msg import Costmap
 
 
 class PathPlannerNode(Node):
@@ -17,19 +20,68 @@ class PathPlannerNode(Node):
     def __init__(self):
         super().__init__("path_planner_node")
         self.basic_navigator = BasicNavigator()  # Can be uncommented to get Global Costmap in create_plan_cb
+        self.basic_navigator.waitUntilNav2Active()
+        self.get_logger().info("Nav2 is active. PathPlannerNode ready to plan.")
 
         # Creating a new service "create_plan", which is called by our Nav2 C++ planner plugin
         # to receive a plan from us.
         self.srv = self.create_service(CreatePlan, 'create_plan', self.create_plan_cb)
 
+        # qos_profile = QoSProfile(
+        #     reliability = ReliabilityPolicy.RELIABLE,
+        #     durability = DurabilityPolicy.TRANSIENT_LOCAL,
+        #     history = HistoryPolicy.KEEP_LAST,
+        #     depth = 1
+        # )
+        # self.costmap_sub = self.create_subscription(
+        #     OccupancyGrid,
+        #     '/global_costmap/costmap',
+        #     self.costmap_cb,
+        #     qos_profile
+        # )
+        # self.latest_costmap = None
+        #self.get_logger().info("PathPlannerNode started and waiting /global_costmap/costmap...")
+        self.get_logger().info("PathPlannerNode started and Nav2 is active.")
+    # def costmap_cb(self, msg):
+    #     self.latest_costmap = msg
+
     def create_plan_cb(self, request, response):
+        self.get_logger().info("Received plan request!")
+
         # Getting all the information to plan the path
         goal_pose = request.goal
         start_pose = request.start
         time_now = self.get_clock().now().to_msg()
-        global_costmap = self.basic_navigator.getGlobalCostmap()  # Can be uncommented to get Global CostMap
 
-        response.path = create_astar_plan(start_pose, goal_pose, time_now, global_costmap, self)
+        # if self.latest_costmap is None:
+        #     self.get_logger().error("No costmap received yet, cannot plan!")
+
+        #     response.path = Path()
+        #     response.path.header.frame_id = start_pose.header.frame_id
+        #     response.path.header.stamp = time_now
+        #     return response
+
+        global_costmap = self.basic_navigator.getGlobalCostmap()
+
+        if global_costmap is None:
+            self.get_logger().error("BasicNavigator failed to retrieve Costmap. Cannot plan!")
+
+            response.path = Path()
+            response.path.header.frame_id = start_pose.header.frame_id
+            response.path.header.stamp = time_now
+            return response
+
+        path = create_astar_plan(start_pose, goal_pose, time_now, global_costmap, self)
+
+        if path:
+            response.path = path
+            self.get_logger().info(f"A* path length: {len(path.poses)}. Path found and returned.")
+        else:
+            self.get_logger().warn("No path found.")
+
+        # global_costmap = self.basic_navigator.getGlobalCostmap()  # Can be uncommented to get Global CostMap
+
+        # response.path = create_astar_plan(start_pose, goal_pose, time_now, global_costmap, self)
         return response
 
 def create_straight_plan(start, goal, time_now):
@@ -72,32 +124,34 @@ def create_straight_plan(start, goal, time_now):
 
     return path
 
-def create_astar_plan(start: PoseStamped, goal: PoseStamped, time_now, costmap: Path, node: Node) -> Optional[Path]:
+def create_astar_plan(start: PoseStamped, goal: PoseStamped, time_now, costmap: OccupancyGrid, node: Node) -> Optional[Path]:
     grid, width, height, resolution, origin = convert_costmap_to_grid(costmap, node)
     if grid is None:
         node.get_logger().error("Costmap conversion failed.")
         return None
 
     start_xy = (start.pose.position.x, start.pose.position.y)
-    goal_xy = (goal.pose.position.x, start.pose.position.y)
+    goal_xy = (goal.pose.position.x, goal.pose.position.y)
 
     start_cell = world_to_map(start_xy, origin, resolution, width, height)
     goal_cell = world_to_map(goal_xy, origin, resolution, width, height)
 
     if start_cell is None or goal_cell is None:
         node.get_logger().error("start or goal outside of costmap bounds.")
+        return None
 
     sx, sy = start_cell
     gx, gy = goal_cell
+
     if grid[sy][sx] == 1:
         node.get_logger().warn("Start cell is occupied.")
-    if grid[gy][gy]== 1:
+    if grid[gy][gx]== 1:
         node.get_logger().warn("Goal cell is occupied.")
 
     path_cells = astar(grid, start_cell, goal_cell, allow_diagonal=True)
 
-    if path_cell is None:
-        node.get_logger().war("A* returned no path.")
+    if path_cells is None:
+        node.get_logger().warn("A* returned no path.")
         return None
 
     path_msg = Path()
@@ -111,35 +165,43 @@ def create_astar_plan(start: PoseStamped, goal: PoseStamped, time_now, costmap: 
         pose.header.stamp = time_now
         pose.pose.position.x = wx
         pose.pose.position.y = wy
+        pose.pose.orientation.w = 1.0
         path_msg.poses.append(pose)
 
     node.get_logger().info(f"A* path length: {len(path_msg.poses)}")
     return path_msg
 
-def convert_costmap_to_grid(costmap: Path, node: Node) -> Tuple[Optional[List[List[int]]], int, int, float, Tuple[float,float]]:
+def convert_costmap_to_grid(costmap: Costmap, node: Node) -> Tuple[Optional[List[List[int]]], int, int, float, Tuple[float,float]]:
     """
     Convert Path to 2D list grid[rows][cols] with 0 = free, 1 = obstacle.
     Returns (grid, width, height, resolution, origin_xy)
     """
+
+    node.get_logger().info(f"Received costmap object type: {type(costmap)}")
     try:
-        width = costmap.info.width
-        height = costmap.info.height
-        resolution = costmap.info.resolution
-        origin_x = costmap.info.origin.position.x
-        origin_y = costmap.info.origin.position.y
-        data = costmap.data  # 1D array length width*height
+        # Pura tiedot Costmap-viestin metadata-kentästä
+        width = costmap.metadata.size_x
+        height = costmap.metadata.size_y
+        resolution = costmap.metadata.resolution
+        origin_x = costmap.metadata.origin.position.x
+        origin_y = costmap.metadata.origin.position.y
+        
+        # Data on costmap-viestin data-kentässä (1D lista)
+        data = costmap.data  
+
     except Exception as e:
-        node.get_logger().error(f"Costmap format error: {e}")
+        node.get_logger().error(f"Costmap format error (Nav2 Costmap parsing): {e}")
         return None, 0, 0, 0.0, (0.0, 0.0)
 
     # occupancy values: -1 = unknown, 0 = free, 100 = occupied (typical)
-    grid: List[List[int]] = [[0 for _ in range(width)] for _ in range(height)]
+    # grid: List[List[int]] = [[0 for _ in range(width)] for _ in range(height)]
+    grid = [[0 for _ in range(width)] for _ in range(height)]
 
     for y in range(height):
         for x in range(width):
             idx = x + y * width
             v = data[idx]
-            if v is None:
+            if v == -1:
                 val = 1
             elif v >= 50:   # threshold for occupied
                 val = 1

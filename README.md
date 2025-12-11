@@ -44,28 +44,29 @@ If you get the error `ros2: command not found` check that the source is found
 source /opt/ros/humble/setup.bash
 ```
 Run each command in its own terminal.
-#### 1.Start the andino robot simulation + Nav2
-```
-ros2 launch andino_gz andino_gz.launch.py nav2:=True
-```
+It could be nessecary run build and source workspace in every terminal.
 
-#### 2. Launch toolbox
-```
-ros2 launch andino_gz slam_toolbox_online_async.launch.py
-```
-
-#### 3. Build and run path_planner
-#### 3.1 Build workspace
+#### 3.1 Build and source workspace
 ```
 cd $HOME/andino_path_planner/
 colcon build --symlink-install
-```
-##### 3.2 Source workspace
-```
 source install/setup.bash
 ```
 
-##### 3.3 Run path planner
+#### 1.Start the andino robot simulation + Nav2
+```
+ros2 launch path_planner_example my_andino_astar_launch.py nav2:=True
+```
+
+
+#### 3. Test path_planner
+
 ```
 ros2 run path_planner_example path_planner_node --ros-args -p use_sim_time:=True
+Starting node astar
+```
+
+##### 3.2 Call service
+```
+ros2 service call /create_plan create_plan_msgs/srv/CreatePlan "{start: {header: {frame_id: 'map'}, pose: {position: {x: 0.0, y: 0.0}}}, goal: {header: {frame_id: 'map'}, pose: {position: {x: 2.0, y: 2.0}}}}"^C
 ```
