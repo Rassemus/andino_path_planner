@@ -293,9 +293,9 @@ planner_server:
   ros__parameters:
     expected_planner_frequency: 10.0
     use_sim_time: True
-    planner_plugins: ["ServiceToAstar"]
+    default_server_plugins: ["ServiceToAstar"]
     ServiceToAstar:
-      plugin: "path_planner_example/AStarServicePlanner"
+      plugin: "path_planner_example::AStarServiceClient"
       service_name: "create_plan"
       tolerance: 0.5
       use_costmap: true

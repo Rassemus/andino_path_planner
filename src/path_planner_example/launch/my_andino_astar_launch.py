@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 import os
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import get_package_share_directory, get_package_prefix
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription, LogInfo
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, GroupAction, IncludeLaunchDescription, LogInfo, SetEnvironmentVariable
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression, TextSubstitution
@@ -18,6 +18,7 @@ def generate_launch_description():
     pkg_andino_gz = get_package_share_directory('andino_gz')
     pkg_nav2_bringup = get_package_share_directory('nav2_bringup')
     pkg_path_planner_example = get_package_share_directory('path_planner_example')
+    pkg_path_planner_example_prefix = get_package_prefix('path_planner_example')
     pkg_slam_toolbox = get_package_share_directory('slam_toolbox')
 
 
@@ -185,6 +186,19 @@ def generate_launch_description():
               'nav2': nav2_flag,
           },
           actions=[
+                SetEnvironmentVariable(
+                    name='AMENT_PREFIX_PATH',
+                    value=TextJoin(
+                        substitutions=[
+                            # Lisää nykyinen polku
+                            TextSubstitution(text=os.environ.get('AMENT_PREFIX_PATH', '')), 
+                            # Erota polut
+                            TextSubstitution(text=':'), 
+                            # Lisää oman pakettisi asennuspolku
+                            pkg_path_planner_example_prefix
+                        ]
+                    )
+                ),
                 IncludeLaunchDescription(
                     PythonLaunchDescriptionSource(
                         os.path.join(pkg_slam_toolbox, 'launch', 'online_async_launch.py')
@@ -194,15 +208,23 @@ def generate_launch_description():
                     }.items(),
                     condition=IfCondition(LaunchConfiguration('nav2')),
                 ),
-                # Node(
-                #     package='path_planner_example',
-                #     executable='path_planner_node',
-                #     name='astar_service_node',
-                #     output='screen',
-                #     parameters=[{'use_sim_time': True}],
-                #     # Aja vain, jos nav2-lippu on True
-                #     condition=IfCondition(LaunchConfiguration('nav2')),
-                # ),
+                ExecuteProcess(
+                    cmd=[
+                        'python3',  # Käytä python-tulkkiä
+                        PathJoinSubstitution([
+                            pkg_path_planner_example_prefix,
+                            'local',
+                            'lib',
+                            'python3.10',
+                            'dist-packages',
+                            'path_planner_example',
+                            'path_planner_node.py' # TÄMÄ ON NYT TÄRKKÄ, SYVÄ POLKU
+                        ])
+                    ],
+                    name='astar_service_node',
+                    output='screen',
+                    condition=IfCondition(LaunchConfiguration('nav2')),
+                ),
               # Remapping scan topics for Nav2 local and global costmap.
               # As we use relative values in the param file for supporting multiple robots,
               # the scan topic needs to be remapped otherwise goes under global-costmap/scan topic.
