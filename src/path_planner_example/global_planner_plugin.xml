@@ -1,6 +1,7 @@
-<library path="path_planner_example">
-  <class name="path_planner_example::AStarServiceClient"
-         base_class_type="nav2_core::GlobalPlanner">
+<library path="path_planner_plugin_library">
+  <class type="path_planner_example::AStarServiceClient"
+         base_class_type="nav2_core::GlobalPlanner"
+         name="AStarPlanner">
     <description>
       A Service Client plugin to call a custom ROS 2 service for global path planning.
     </description>

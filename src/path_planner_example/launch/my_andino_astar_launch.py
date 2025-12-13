@@ -28,7 +28,7 @@ def generate_launch_description():
     world_name_arg = DeclareLaunchArgument(
         'world_name', default_value='depot.sdf', description='Name of the world to load. Match with map if using Nav2.')
     robots_arg = DeclareLaunchArgument(
-        'robots', default_value="andino={x: 0., y: 0., z: 0.1, yaw: 0.};",
+        'robots', default_value="andino={x: 0.0, y: 0.0, z: 0.5, yaw: 0.0};",
         description='Robots to spawn, multiple robots can be stated separated by a ; ')
     gui_config_arg = DeclareLaunchArgument(
         'gui_config',
@@ -86,13 +86,25 @@ def generate_launch_description():
                 launch_arguments={'gz_args': gz_args}.items(),
             ),
             # ROS Bridge for generic Gazebo stuff
+            # Node(
+            #     package='ros_gz_bridge',
+            #     executable='parameter_bridge',
+            #     arguments=['/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock'],
+            #     output='screen',
+            #     namespace='andino_gz_sim',
+            #     condition=IfCondition(ros_bridge),
+            # ),
             Node(
                 package='ros_gz_bridge',
                 executable='parameter_bridge',
-                arguments=['/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock'],
+                name='parameter_bridge',
                 output='screen',
-                namespace='andino_gz_sim',
-                condition=IfCondition(ros_bridge),
+                parameters=[{'use_sim_time': True}],
+                arguments=[
+                    '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
+                    '~model/andino/odometry@gz.msgs.Odometry[gz.msgs.Odometry]~odom@nav_msgs/msg/Odometry',
+                    '~model/andino/pose@gz.msgs.Pose[gz.msgs.Pose]~tf@tf2_msgs/msg/TFMessage',
+                ]
             ),
         ]
     )
@@ -176,92 +188,75 @@ def generate_launch_description():
                 ),
             ]
         )
+        # ... (Robots list loop alkaa tästä)
+
+        # NAVIGATIO RYHMÄ (Käynnistää SLAM Toolboxin, A*-solmun ja Nav2:n loput osat)
         nav_group = GroupAction(
-          scoped=True, forwarding=False,
-          launch_configurations={
-              'rviz': rviz,
-              'ros_bridge': ros_bridge,
-              'map': map_path,
-              'params_file': params_file,
-              'nav2': nav2_flag,
-          },
-          actions=[
-                SetEnvironmentVariable(
-                    name='AMENT_PREFIX_PATH',
-                    value=TextJoin(
-                        substitutions=[
-                            # Lisää nykyinen polku
-                            TextSubstitution(text=os.environ.get('AMENT_PREFIX_PATH', '')), 
-                            # Erota polut
-                            TextSubstitution(text=':'), 
-                            # Lisää oman pakettisi asennuspolku
-                            pkg_path_planner_example_prefix
-                        ]
-                    )
-                ),
+            scoped=True, forwarding=False,
+            launch_configurations={
+                'rviz': rviz,
+                'ros_bridge': ros_bridge,
+                'map': map_path,
+                'params_file': params_file,
+                'nav2': nav2_flag,
+            },
+            actions=[
+              # 1. KÄYNNISTÄ SLAM TOOLBOX (hoitaa lokalisoinnin ja kartan /tf)
                 IncludeLaunchDescription(
-                    PythonLaunchDescriptionSource(
-                        os.path.join(pkg_slam_toolbox, 'launch', 'online_async_launch.py')
-                    ),
-                    launch_arguments={
-                        'use_sim_time': 'true',
+                PythonLaunchDescriptionSource(
+                    os.path.join(pkg_slam_toolbox, 'launch', 'online_async_launch.py')
+                ),
+                launch_arguments={
+                    'use_sim_time': 'true',
+                    'scan_topic': 'scan',
                     }.items(),
                     condition=IfCondition(LaunchConfiguration('nav2')),
+                    # remappings=[('scan', '/' + robot_name + '/scan')]
                 ),
-                ExecuteProcess(
-                    cmd=[
-                        'python3',  # Käytä python-tulkkiä
-                        PathJoinSubstitution([
-                            pkg_path_planner_example_prefix,
-                            'local',
-                            'lib',
-                            'python3.10',
-                            'dist-packages',
-                            'path_planner_example',
-                            'path_planner_node.py' # TÄMÄ ON NYT TÄRKKÄ, SYVÄ POLKU
-                        ])
-                    ],
+
+                # 2. KÄYNNISTÄ A* PALVELU (Korjattu ExecuteProcess-virhe) 
+                Node(
+                    package='path_planner_example',     # Paketin nimi
+                    executable='path_planner_node.py',     # setup.py:n rekisteröity nimi
                     name='astar_service_node',
                     output='screen',
+                    parameters=[{'use_sim_time': True}],
                     condition=IfCondition(LaunchConfiguration('nav2')),
                 ),
-              # Remapping scan topics for Nav2 local and global costmap.
-              # As we use relative values in the param file for supporting multiple robots,
-              # the scan topic needs to be remapped otherwise goes under global-costmap/scan topic.
-              SetRemap(src='/' + robot_name + '/global_costmap/scan', dst='/' + robot_name + '/scan', condition=IfCondition(PythonExpression([more_than_one_robot, ' and ', LaunchConfiguration('nav2')]))),
-              SetRemap(src='/' + robot_name + '/local_costmap/scan', dst='/' + robot_name + '/scan', condition=IfCondition(PythonExpression([more_than_one_robot, ' and ', LaunchConfiguration('nav2')]))),
-              # Nav2 Bringup for multiple robots
-              IncludeLaunchDescription(
-                  PythonLaunchDescriptionSource(
-                      os.path.join(pkg_nav2_bringup, 'launch', 'bringup_launch.py')
-                  ),
-                  launch_arguments={
-                    'namespace': robot_name,
-                    'use_namespace': 'True',
-                    'map': LaunchConfiguration('map'),
-                    'autostart': 'True',
-                    'use_sim_time': 'True',
-                    'params_file': LaunchConfiguration('params_file'),
-                  }.items(),
-                  condition=IfCondition(PythonExpression([more_than_one_robot, ' and ', LaunchConfiguration('nav2')])),
-              ),
-              SetRemap(src='/global_costmap/scan', dst='/scan', condition=IfCondition(PythonExpression([one_robot, ' and ', LaunchConfiguration('nav2')]))),
-              SetRemap(src='/local_costmap/scan', dst='/scan', condition=IfCondition(PythonExpression([one_robot, ' and ', LaunchConfiguration('nav2')]))),
-              # Nav2 Bringup for single robot
-              IncludeLaunchDescription(
-                  PythonLaunchDescriptionSource(
-                      os.path.join(pkg_nav2_bringup, 'launch', 'bringup_launch.py')
-                  ),
-                  launch_arguments={
-                    'map': LaunchConfiguration('map'),
-                    'autostart': 'True',
-                    'use_sim_time': 'True',
-                    'params_file': LaunchConfiguration('params_file'),
-                  }.items(),
-                  condition=IfCondition(PythonExpression([one_robot, ' and ', LaunchConfiguration('nav2')])),
-              ),
+                # ExecuteProcess(
+                #     cmd=[
+                #         'python3', 
+                #         '/home/rasmus/andino_path_planner/install/path_planner_example/local/lib/python3.10/dist-packages/path_planner_example/path_planner_node.py' 
+                #     ],
+                #         name='astar_service_node',
+                #         output='screen',
+                #         condition=IfCondition(LaunchConfiguration('nav2')),
+                # ),
+
+                # Remapping scan topics for Nav2 local and global costmap (Jätetään nämä ennallaan)
+                SetRemap(src='/' + robot_name + '/global_costmap/scan', dst='/' + robot_name + '/scan', condition=IfCondition(PythonExpression([more_than_one_robot, ' and ', LaunchConfiguration('nav2')]))),
+                SetRemap(src='/' + robot_name + '/local_costmap/scan', dst='/' + robot_name + '/scan', condition=IfCondition(PythonExpression([more_than_one_robot, ' and ', LaunchConfiguration('nav2')]))),
+              
+                # 3. KÄYNNISTÄ NAV2 PINON LOPPUOSA
+                IncludeLaunchDescription(
+                    PythonLaunchDescriptionSource(
+                    os.path.join(pkg_nav2_bringup, 'launch', 'navigation_launch.py')
+                    ),
+                    launch_arguments={
+                        'map': 'false', # OK, estää Map Serveriä lukemasta karttatiedostoa
+                        'autostart': 'True',
+                        'use_sim_time': 'True',
+                        'params_file': LaunchConfiguration('params_file'),
+                        'use_localization': 'false', 
+                    }.items(),
+                    condition=IfCondition(PythonExpression([one_robot, ' and ', LaunchConfiguration('nav2')])),
+                ),
+                # Remapping (yhden robotin tila)
+                SetRemap(src='/global_costmap/scan', dst='/scan', condition=IfCondition(PythonExpression([one_robot, ' and ', LaunchConfiguration('nav2')]))),
+                SetRemap(src='/local_costmap/scan', dst='/scan', condition=IfCondition(PythonExpression([one_robot, ' and ', LaunchConfiguration('nav2')]))),
             ]
           )
+
         spawn_robots_group.append(robots_group)
         spawn_robots_group.append(nav_group)
 

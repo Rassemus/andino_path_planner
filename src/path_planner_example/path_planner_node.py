@@ -20,8 +20,6 @@ class PathPlannerNode(Node):
     def __init__(self):
         super().__init__("path_planner_node")
         self.basic_navigator = BasicNavigator()  # Can be uncommented to get Global Costmap in create_plan_cb
-        self.basic_navigator.waitUntilNav2Active()
-        self.get_logger().info("Nav2 is active. PathPlannerNode ready to plan.")
 
         # Creating a new service "create_plan", which is called by our Nav2 C++ planner plugin
         # to receive a plan from us.

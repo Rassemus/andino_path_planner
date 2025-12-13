@@ -31,7 +31,8 @@ include("${pluginlib_DIR}/pluginlib_export_plugin_description_file.cmake")
 
 add_library(path_planner_example SHARED path_planner_service_client.cpp)
 
-ament_target_dependencies(path_planner_example
+ament_target_dependencies(
+  path_planner_example
   rclcpp
   nav2_core
   nav_msgs
@@ -59,11 +60,13 @@ install(DIRECTORY config
   DESTINATION share/${PROJECT_NAME}
 )
 
+install(PROGRAMS path_planner_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 pluginlib_export_plugin_description_file(path_planner_example global_planner_plugin.xml)
 
 ament_export_dependencies(pluginlib)
-
-ament_python_install_package(path_planner_example)
 
 ament_export_targets()
 
