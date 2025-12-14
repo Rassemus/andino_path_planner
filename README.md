@@ -39,9 +39,11 @@ git clone git@github.com:Rassemus/andino_path_planner.git
 
 # How to run simulation
 
-> [!WARNING] If you get the error `ros2: command not found` check that the source is found
+> [!WARNING]
+> If you get the error `ros2: command not found` check that the source is found
+> ```
 > source /opt/ros/humble/setup.bash
-
+> ```
 
 #### 1. Build and source workspace
 ```
