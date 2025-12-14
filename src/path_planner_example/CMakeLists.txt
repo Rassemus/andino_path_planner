@@ -6,7 +6,7 @@ if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
 endif()
 
-# ROS 2 AMENT/CMAKE-paketit
+# ROS 2 AMENT/CMAKE-package
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 find_package(ament_cmake_core REQUIRED)
@@ -19,15 +19,6 @@ find_package(geometry_msgs REQUIRED)
 find_package(create_plan_msgs REQUIRED) 
 find_package(pluginlib REQUIRED)
 include("${pluginlib_DIR}/pluginlib_export_plugin_description_file.cmake")
-
-# ====================================================================
-# AMENT_PYTHON - YHTEENSOPIVUUS
-# ====================================================================
-# ament_python_install_package(path_planner_example)
-
-# ====================================================================
-# C++ PLUGININ MÄÄRITTELY JA KÄÄNTÄMINEN
-# ====================================================================
 
 add_library(path_planner_example SHARED path_planner_service_client.cpp)
 
@@ -47,7 +38,6 @@ install(TARGETS
   DESTINATION lib
 )
 
-# TÄMÄ ASENTAA XML-TIEDOSTON
 install(FILES global_planner_plugin.xml
   DESTINATION share/${PROJECT_NAME}
 )

@@ -86,14 +86,6 @@ def generate_launch_description():
                 launch_arguments={'gz_args': gz_args}.items(),
             ),
             # ROS Bridge for generic Gazebo stuff
-            # Node(
-            #     package='ros_gz_bridge',
-            #     executable='parameter_bridge',
-            #     arguments=['/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock'],
-            #     output='screen',
-            #     namespace='andino_gz_sim',
-            #     condition=IfCondition(ros_bridge),
-            # ),
             Node(
                 package='ros_gz_bridge',
                 executable='parameter_bridge',
@@ -190,7 +182,6 @@ def generate_launch_description():
         )
         # ... (Robots list loop alkaa tästä)
 
-        # NAVIGATIO RYHMÄ (Käynnistää SLAM Toolboxin, A*-solmun ja Nav2:n loput osat)
         nav_group = GroupAction(
             scoped=True, forwarding=False,
             launch_configurations={
@@ -201,7 +192,6 @@ def generate_launch_description():
                 'nav2': nav2_flag,
             },
             actions=[
-              # 1. KÄYNNISTÄ SLAM TOOLBOX (hoitaa lokalisoinnin ja kartan /tf)
                 IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
                     os.path.join(pkg_slam_toolbox, 'launch', 'online_async_launch.py')
@@ -211,39 +201,26 @@ def generate_launch_description():
                     'scan_topic': 'scan',
                     }.items(),
                     condition=IfCondition(LaunchConfiguration('nav2')),
-                    # remappings=[('scan', '/' + robot_name + '/scan')]
                 ),
-
-                # 2. KÄYNNISTÄ A* PALVELU (Korjattu ExecuteProcess-virhe) 
                 Node(
-                    package='path_planner_example',     # Paketin nimi
-                    executable='path_planner_node.py',     # setup.py:n rekisteröity nimi
+                    package='path_planner_example',
+                    executable='path_planner_node.py',
                     name='astar_service_node',
                     output='screen',
                     parameters=[{'use_sim_time': True}],
                     condition=IfCondition(LaunchConfiguration('nav2')),
                 ),
-                # ExecuteProcess(
-                #     cmd=[
-                #         'python3', 
-                #         '/home/rasmus/andino_path_planner/install/path_planner_example/local/lib/python3.10/dist-packages/path_planner_example/path_planner_node.py' 
-                #     ],
-                #         name='astar_service_node',
-                #         output='screen',
-                #         condition=IfCondition(LaunchConfiguration('nav2')),
-                # ),
 
-                # Remapping scan topics for Nav2 local and global costmap (Jätetään nämä ennallaan)
+                # Remapping scan topics for Nav2 local and global costmap
                 SetRemap(src='/' + robot_name + '/global_costmap/scan', dst='/' + robot_name + '/scan', condition=IfCondition(PythonExpression([more_than_one_robot, ' and ', LaunchConfiguration('nav2')]))),
                 SetRemap(src='/' + robot_name + '/local_costmap/scan', dst='/' + robot_name + '/scan', condition=IfCondition(PythonExpression([more_than_one_robot, ' and ', LaunchConfiguration('nav2')]))),
               
-                # 3. KÄYNNISTÄ NAV2 PINON LOPPUOSA
                 IncludeLaunchDescription(
                     PythonLaunchDescriptionSource(
                     os.path.join(pkg_nav2_bringup, 'launch', 'navigation_launch.py')
                     ),
                     launch_arguments={
-                        'map': 'false', # OK, estää Map Serveriä lukemasta karttatiedostoa
+                        'map': 'false',
                         'autostart': 'True',
                         'use_sim_time': 'True',
                         'params_file': LaunchConfiguration('params_file'),
@@ -251,7 +228,7 @@ def generate_launch_description():
                     }.items(),
                     condition=IfCondition(PythonExpression([one_robot, ' and ', LaunchConfiguration('nav2')])),
                 ),
-                # Remapping (yhden robotin tila)
+                # Remapping
                 SetRemap(src='/global_costmap/scan', dst='/scan', condition=IfCondition(PythonExpression([one_robot, ' and ', LaunchConfiguration('nav2')]))),
                 SetRemap(src='/local_costmap/scan', dst='/scan', condition=IfCondition(PythonExpression([one_robot, ' and ', LaunchConfiguration('nav2')]))),
             ]

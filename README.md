@@ -25,7 +25,7 @@ The project is tested with the Andino robot in Gazebo.
 
 - colcon build system
 
-- Andino robot simulation (used via: `ros2 launch andino_gz andino_gz.launch.py nav2:=true`)
+- Andino robot simulation
 
 - Nav2 installed
 
@@ -39,34 +39,33 @@ git clone git@github.com:Rassemus/andino_path_planner.git
 
 # How to run simulation
 
-If you get the error `ros2: command not found` check that the source is found
-```
-source /opt/ros/humble/setup.bash
-```
-Run each command in its own terminal.
-It could be nessecary run build and source workspace in every terminal.
+> [!WARNING] If you get the error `ros2: command not found` check that the source is found
+> source /opt/ros/humble/setup.bash
 
-#### 3.1 Build and source workspace
+
+#### 1. Build and source workspace
 ```
 cd $HOME/andino_path_planner/
 colcon build --symlink-install
 source install/setup.bash
 ```
 
-#### 1.Start the andino robot simulation + Nav2
+#### 2. Launch the andino robot simulation + Nav2
 ```
 ros2 launch path_planner_example my_andino_astar_launch.py nav2:=True
 ```
 
 
-#### 3. Test path_planner
+> [!NOTE]
+> The following commands may require configuration changes to work.
+
+#### 3. Test path_planner_node
 
 ```
 ros2 run path_planner_example path_planner_node --ros-args -p use_sim_time:=True
-Starting node astar
 ```
 
 ##### 3.2 Call service
 ```
-ros2 service call /create_plan create_plan_msgs/srv/CreatePlan "{start: {header: {frame_id: 'map'}, pose: {position: {x: 0.0, y: 0.0}}}, goal: {header: {frame_id: 'map'}, pose: {position: {x: 2.0, y: 2.0}}}}"^C
+ros2 service call /create_plan create_plan_msgs/srv/CreatePlan "{start: {header: {frame_id: 'map'}, pose: {position: {x: 0.0, y: 0.0}}}, goal: {header: {frame_id: 'map'}, pose: {position: {x: 2.0, y: 2.0}}}}"
 ```

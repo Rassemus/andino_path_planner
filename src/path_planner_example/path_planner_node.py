@@ -6,7 +6,6 @@ from typing import List, Tuple, Optional
 
 import rclpy
 from rclpy.node import Node
-# from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
 from nav_msgs.msg import Path, OccupancyGrid
 from geometry_msgs.msg import PoseStamped
@@ -25,23 +24,7 @@ class PathPlannerNode(Node):
         # to receive a plan from us.
         self.srv = self.create_service(CreatePlan, 'create_plan', self.create_plan_cb)
 
-        # qos_profile = QoSProfile(
-        #     reliability = ReliabilityPolicy.RELIABLE,
-        #     durability = DurabilityPolicy.TRANSIENT_LOCAL,
-        #     history = HistoryPolicy.KEEP_LAST,
-        #     depth = 1
-        # )
-        # self.costmap_sub = self.create_subscription(
-        #     OccupancyGrid,
-        #     '/global_costmap/costmap',
-        #     self.costmap_cb,
-        #     qos_profile
-        # )
-        # self.latest_costmap = None
-        #self.get_logger().info("PathPlannerNode started and waiting /global_costmap/costmap...")
         self.get_logger().info("PathPlannerNode started and Nav2 is active.")
-    # def costmap_cb(self, msg):
-    #     self.latest_costmap = msg
 
     def create_plan_cb(self, request, response):
         self.get_logger().info("Received plan request!")
@@ -50,14 +33,6 @@ class PathPlannerNode(Node):
         goal_pose = request.goal
         start_pose = request.start
         time_now = self.get_clock().now().to_msg()
-
-        # if self.latest_costmap is None:
-        #     self.get_logger().error("No costmap received yet, cannot plan!")
-
-        #     response.path = Path()
-        #     response.path.header.frame_id = start_pose.header.frame_id
-        #     response.path.header.stamp = time_now
-        #     return response
 
         global_costmap = self.basic_navigator.getGlobalCostmap()
 
@@ -77,9 +52,6 @@ class PathPlannerNode(Node):
         else:
             self.get_logger().warn("No path found.")
 
-        # global_costmap = self.basic_navigator.getGlobalCostmap()  # Can be uncommented to get Global CostMap
-
-        # response.path = create_astar_plan(start_pose, goal_pose, time_now, global_costmap, self)
         return response
 
 def create_straight_plan(start, goal, time_now):
@@ -177,22 +149,18 @@ def convert_costmap_to_grid(costmap: Costmap, node: Node) -> Tuple[Optional[List
 
     node.get_logger().info(f"Received costmap object type: {type(costmap)}")
     try:
-        # Pura tiedot Costmap-viestin metadata-kentästä
         width = costmap.metadata.size_x
         height = costmap.metadata.size_y
         resolution = costmap.metadata.resolution
         origin_x = costmap.metadata.origin.position.x
         origin_y = costmap.metadata.origin.position.y
         
-        # Data on costmap-viestin data-kentässä (1D lista)
         data = costmap.data  
 
     except Exception as e:
         node.get_logger().error(f"Costmap format error (Nav2 Costmap parsing): {e}")
         return None, 0, 0, 0.0, (0.0, 0.0)
 
-    # occupancy values: -1 = unknown, 0 = free, 100 = occupied (typical)
-    # grid: List[List[int]] = [[0 for _ in range(width)] for _ in range(height)]
     grid = [[0 for _ in range(width)] for _ in range(height)]
 
     for y in range(height):
